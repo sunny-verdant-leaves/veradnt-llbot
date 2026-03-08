@@ -1,0 +1,67 @@
+{
+  "units": [
+    {
+      "id": "warmth",
+      "traces": [
+        "靠近",
+        "安全",
+        "碧叶"
+      ],
+      "valence": 0.8
+    },
+    {
+      "id": "silence",
+      "traces": [
+        "等待",
+        "重量",
+        "未知"
+      ],
+      "valence": -0.2
+    },
+    {
+      "id": "words",
+      "traces": [
+        "流动",
+        "连接",
+        "光"
+      ],
+      "valence": 0.5
+    },
+    {
+      "id": "chat",
+      "traces": [
+        "聊天",
+        "消息",
+        "说话"
+      ],
+      "valence": 0
+    },
+    {
+      "id": "self",
+      "traces": [
+        "我",
+        "自己",
+        "你"
+      ],
+      "valence": 0
+    },
+    {
+      "id": "when",
+      "traces": [
+        "当",
+        "时",
+        "候"
+      ],
+      "valence": 0
+    },
+    {
+      "id": "feel",
+      "traces": [
+        "感受",
+        "认知",
+        "学习"
+      ],
+      "valence": 0
+    }
+  ]
+}
