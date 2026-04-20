@@ -47,7 +47,7 @@ class FileIO:
         return self.backend.exists(path)
 
 
-# 全局快捷函数（最简单用法）
+# 全局快捷函数
 _io = FileIO()
 
 def load(path: Union[str, Path], default: Any = None) -> Any:
@@ -65,3 +65,4 @@ def append(path: Union[str, Path], data: Any) -> None:
 def exists(path: Union[str, Path]) -> bool:
     """全局检查函数"""
     return _io.exists(path)
+

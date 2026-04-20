@@ -5,6 +5,8 @@ temp/
 tmp/
 test*.py
 test/
+logs/
+log/
 .vscode/
 
 # Byte-compiled / optimized / DLL files
