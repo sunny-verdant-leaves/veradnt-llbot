@@ -21,8 +21,8 @@ class Preset(Enum):
 
 
 class Logger:
-    """
-    异步日期滚动日志
+    """异步日期滚动日志
+
     后台线程消费队列，按日期分文件写入，自动创建目录
     用法：
         log = Logger("./logs")
@@ -32,8 +32,7 @@ class Logger:
     """
     
     def __init__(self, base_path: Union[str, Path] = "./logs", level: Level = Level.INFO):
-        """
-        初始化日志器，启动后台写入线程
+        """初始化日志器，启动后台写入线程
         
         Args:
             base_path: 日志根目录
@@ -51,8 +50,7 @@ class Logger:
         self._worker.start()
     
     def _loop(self, base_path: Path):
-        """
-        后台线程主循环：从队列取数据，按日期写入文件
+        """后台线程主循环：从队列取数据，按日期写入文件
         
         Args:
             base_path: 日志根目录（由 __init__ 传入）
@@ -91,8 +89,7 @@ class Logger:
             file.close()
     
     def write(self, prog: str, msg: str, level: Level = Level.INFO):
-        """
-        写入日志（异步，立即返回）
+        """写入日志（异步，立即返回）
         
         Args:
             prog: 程序名，决定子目录

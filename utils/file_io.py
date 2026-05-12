@@ -8,8 +8,7 @@ from .storage_backends import StorageBackend, JSONBackend
 
 @dataclass
 class FileIO:
-    """
-    文件IO统一入口
+    """文件IO统一入口
     
     用法：
         # 使用默认JSON后端
