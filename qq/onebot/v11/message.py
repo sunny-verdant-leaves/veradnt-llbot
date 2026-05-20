@@ -5,9 +5,10 @@ import json
 from copy import deepcopy
 from enum import Enum
 from dataclasses import dataclass
-from pydantic import BaseModel, validate_call, ConfigDict
+from pydantic import BaseModel, validate_call, ConfigDict, GetCoreSchemaHandler
+from pydantic_core import CoreSchema, core_schema
 from collections.abc import Iterable
-from typing import Dict, List, Any, Optional, Union
+from typing import Dict, List, Any, Optional, Union, Literal
 from typing_extensions import Self, override
 
 from .utils import escape, unescape
@@ -54,7 +55,7 @@ _CQ_PATTERN = re.compile(
 
 @dataclass
 class MessageSegment():
-    """OneBot v11 消息段"""
+    """OneBot v11 基础消息段"""
 
     type_: str
     data: Dict[str, Any]
@@ -483,6 +484,18 @@ class MessageSegment():
 class Message(List[MessageSegment]):
     """OneBot v11 消息数组(列表)"""
 
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls, 
+        source_type: Any, 
+        handler: GetCoreSchemaHandler
+    ) -> CoreSchema:
+        return core_schema.list_schema(handler.generate_schema(MessageSegment))
+
+    @classmethod
+    def __get_pydantic_json_schema__(cls, core_schema, handler):
+        return handler(core_schema)
+    
     @override
     def __init__(self, message: Union[str, MessageSegment, List[MessageSegment], None] = None):
         super().__init__()

@@ -5,9 +5,10 @@ import json
 from copy import deepcopy
 from enum import Enum
 from dataclasses import dataclass
-from pydantic import BaseModel, validate_call, ConfigDict
+from pydantic import BaseModel, validate_call, ConfigDict, GetCoreSchemaHandler
+from pydantic_core import CoreSchema, core_schema
 from collections.abc import Iterable
-from typing import Dict, List, Any, Optional, Union
+from typing import Dict, List, Any, Optional, Union, Literal
 from typing_extensions import Self, override
 
 from ..utils import ab2s
@@ -136,6 +137,18 @@ class MessageSegment():
 
 class Message(List[MessageSegment]):
     """OneBot v12 消息数组(列表)"""
+
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls, 
+        source_type: Any, 
+        handler: GetCoreSchemaHandler
+    ) -> CoreSchema:
+        return core_schema.list_schema(handler.generate_schema(MessageSegment))
+
+    @classmethod
+    def __get_pydantic_json_schema__(cls, core_schema, handler):
+        return handler(core_schema)
 
     @override
     def __init__(self, message: Union[str, MessageSegment, List[MessageSegment], None] = None):
