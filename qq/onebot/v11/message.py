@@ -57,7 +57,7 @@ _CQ_PATTERN = re.compile(
 class MessageSegment():
     """OneBot v11 基础消息段"""
 
-    type_: str
+    type: str
     data: Dict[str, Any]
 
     @override
@@ -70,13 +70,27 @@ class MessageSegment():
         )
         return f"[CQ:{self.type}{',' if params else ''}{params}]"
 
+    def __add__(
+        self, other: Union[str, "MessageSegment", List["MessageSegment"]]
+    ) -> "Message":
+        return Message(self) + (
+            MessageSegment.text(other) if isinstance(other, str) else other
+        )
+
+    def __radd__(
+        self, other: Union[str, "MessageSegment", List["MessageSegment"]]
+    ) -> "Message":
+        return (
+            MessageSegment.text(other) if isinstance(other, str) else Message(other)
+        ) + self
+
     def to_dict(self) -> Dict[str, Any]:
         """转换成字典"""
-        return {"type": self.type_, "data": self.data}
+        return {"type": self.type, "data": self.data}
     
     def to_json(self) -> str:
         """转换成 json 字符串"""
-        return json.dumps({"type": self.type_, "data": self.data}, ensure_ascii=False)
+        return json.dumps({"type": self.type, "data": self.data}, ensure_ascii=False)
 
     def is_text(self) -> bool:
         """是否是文本"""
@@ -495,34 +509,37 @@ class Message(List[MessageSegment]):
     @classmethod
     def __get_pydantic_json_schema__(cls, core_schema, handler):
         return handler(core_schema)
-    
+
     @override
-    def __init__(self, message: Union[str, MessageSegment, List[MessageSegment], None] = None):
+    def __init__(
+        self, 
+        message: Union[str, MessageSegment, List[MessageSegment], None] = None
+    ):
         super().__init__()
         if message is None:
             return
         elif isinstance(message, str):
-            self.extend(MessageSegment.text(message))
+            self.append(MessageSegment.text(message))
         elif isinstance(message, MessageSegment):
             self.append(message)
         elif isinstance(message, Iterable):
             self.extend(message)
         else:
-            self.extend(MessageSegment.text(message))
+            self.append(MessageSegment.text(message))
 
     @override
     def __add__(
         self, other: Union[str, MessageSegment, List[MessageSegment]]
     ) -> Self:
-        result = self.copy()
+        result = deepcopy(self)
         result += other
         return result
-    
+
     @override
     def __radd__(
         self, other: Union[str, MessageSegment, List[MessageSegment]]
     ) -> Self:
-        result = self.__class__(other)
+        result = deepcopy(self)
         return result + self
 
     @override
@@ -530,12 +547,53 @@ class Message(List[MessageSegment]):
         self, other: Union[str, MessageSegment, List[MessageSegment]]
     ) -> Self:
         if isinstance(other, str):
-            self.extend(MessageSegment.text(other))
+            self.append(Message._construct(other))
         elif isinstance(other, MessageSegment):
             self.append(other)
         elif isinstance(other, Iterable):
             self.extend(other)
         else:
             raise TypeError(f"Unsupported type {type(other)!r}")
-        return super().__iadd__(other)
-    
+        return self
+
+    @staticmethod
+    def _construct(msg: str) -> List[MessageSegment]:
+        result: List[MessageSegment] = []
+        cursor = 0
+
+        for match in _CQ_PATTERN.finditer(msg):
+            # 提取本次匹配之前的文本
+            text_before = msg[cursor:match.start()]
+            if text_before:
+                result.append(MessageSegment("text", {"text": unescape(text_before)}))
+
+            # 解析当前 CQ 码的参数
+            cq_type = match.group("type")
+            params_str = match.group("params").lstrip(",")  # 去掉开头的逗号
+            data: Dict[str, str] = {}
+
+            if params_str:
+                for part in params_str.split(","):
+                    part = part.strip()
+                    if not part:
+                        continue
+                    if "=" not in part:
+                        continue
+                    key, value = part.split("=", 1)
+                    data[key] = unescape(value)
+
+            result.append(MessageSegment(cq_type, data))
+
+            # 移动游标到当前匹配末尾
+            cursor = match.end()
+
+        # 处理尾部文本
+        tail_text = msg[cursor:]
+        if tail_text:
+            result.append(MessageSegment("text", {"text": unescape(tail_text)}))
+
+        # 兜底
+        if not result:
+            result.append(MessageSegment("text", {"text": msg}))
+
+        return result

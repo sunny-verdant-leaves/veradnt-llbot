@@ -267,7 +267,7 @@ class GroupMessageEvent(MessageEvent):
         
         群聊会话格式: group_{group_id}_{user_id}
         """
-        return str(self.group_id)
+        return f"group_{self.group_id}_{self.user_id}"
     
     @override
     def is_tome(self) -> bool:
@@ -319,7 +319,7 @@ class GroupNoticeEvent(NoticeEvent):
     def get_session_id(self) -> str:
         """获取会话 id
         
-        群通知会话格式: group_{group_id}_{user_id}
+        群聊会话格式: group_{group_id}_{user_id}
         """
         return f"group_{self.group_id}_{self.user_id}"
 
@@ -412,7 +412,7 @@ class FriendRecallNoticeEvent(NoticeEvent):
     def get_session_id(self) -> str:
         """获取会话 id
         
-        好友 QQ号
+        私聊会话格式: 对方QQ号
         """
         return str(self.user_id)
 

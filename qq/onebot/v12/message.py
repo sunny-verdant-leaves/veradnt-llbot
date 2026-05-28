@@ -151,32 +151,35 @@ class Message(List[MessageSegment]):
         return handler(core_schema)
 
     @override
-    def __init__(self, message: Union[str, MessageSegment, List[MessageSegment], None] = None):
+    def __init__(
+        self, 
+        message: Union[str, MessageSegment, List[MessageSegment], None] = None
+    ):
         super().__init__()
         if message is None:
             return
         elif isinstance(message, str):
-            self.extend(MessageSegment.text(message))
+            self.append(MessageSegment.text(message))
         elif isinstance(message, MessageSegment):
             self.append(message)
         elif isinstance(message, Iterable):
             self.extend(message)
         else:
-            self.extend(MessageSegment.text(message))
+            self.append(MessageSegment.text(message))
 
     @override
     def __add__(
         self, other: Union[str, MessageSegment, List[MessageSegment]]
     ) -> Self:
-        result = self.copy()
+        result = deepcopy(self)
         result += other
         return result
-    
+
     @override
     def __radd__(
         self, other: Union[str, MessageSegment, List[MessageSegment]]
     ) -> Self:
-        result = self.__class__(other)
+        result = deepcopy(self)
         return result + self
 
     @override
@@ -184,12 +187,16 @@ class Message(List[MessageSegment]):
         self, other: Union[str, MessageSegment, List[MessageSegment]]
     ) -> Self:
         if isinstance(other, str):
-            self.extend(MessageSegment.text(other))
+            self.append(Message._construct(other))
         elif isinstance(other, MessageSegment):
             self.append(other)
         elif isinstance(other, Iterable):
             self.extend(other)
         else:
             raise TypeError(f"Unsupported type {type(other)!r}")
-        return super().__iadd__(other)
+        return self
+
+    @staticmethod
+    def _construct(msg: str) -> List[MessageSegment]:
+        MessageSegment.text(msg)
     
