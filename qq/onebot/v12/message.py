@@ -159,13 +159,13 @@ class Message(List[MessageSegment]):
         if message is None:
             return
         elif isinstance(message, str):
-            self.append(MessageSegment.text(message))
+            self.extend(self._construct(message))
         elif isinstance(message, MessageSegment):
             self.append(message)
         elif isinstance(message, Iterable):
             self.extend(message)
         else:
-            self.append(MessageSegment.text(message))
+            self.extend(self._construct(message))
 
     @override
     def __add__(
@@ -179,7 +179,7 @@ class Message(List[MessageSegment]):
     def __radd__(
         self, other: Union[str, MessageSegment, List[MessageSegment]]
     ) -> Self:
-        result = deepcopy(self)
+        result = self.__class__(other)
         return result + self
 
     @override
@@ -187,7 +187,7 @@ class Message(List[MessageSegment]):
         self, other: Union[str, MessageSegment, List[MessageSegment]]
     ) -> Self:
         if isinstance(other, str):
-            self.append(Message._construct(other))
+            self.extend(self._construct(other))
         elif isinstance(other, MessageSegment):
             self.append(other)
         elif isinstance(other, Iterable):
@@ -199,4 +199,3 @@ class Message(List[MessageSegment]):
     @staticmethod
     def _construct(msg: str) -> List[MessageSegment]:
         MessageSegment.text(msg)
-    
