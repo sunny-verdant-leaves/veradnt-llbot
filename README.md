@@ -14,9 +14,9 @@ Sunny Verdant Leaves (project owner) would like to make chatbots in QQ more vivi
 python -m venv venv
 
 # 2. Activate 启用虚拟环境
-venv\Scripts\activate           # Windows
+venv/Scripts/activate           # Windows
 source venv/bin/activate        # macOS & Linux
 
 # 3. Install dependencies 安装依赖
-pip install -r requirements.txt
+pip install -r requirements.txt -config-file=./pip.ini
 ```
