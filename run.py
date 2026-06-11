@@ -5,7 +5,7 @@ import requests
 import time
 import random
 import subprocess
-from typing import Optional
+from typing import Dict, Optional
 from datetime import datetime
 from fastapi import FastAPI, Request
 from contextlib import asynccontextmanager
@@ -18,9 +18,8 @@ today = datetime.now().strftime("%Y-%m-%d")
 path = "d:/在/大量大型文件/Python/LLBot-CLI-win-x64-v7.11.4/llbot.exe"  # LLBot所在路径
 
 async def worker(buffer: asyncio.Queue):
-    repeat = Message()
-    events = []
-    msgs = []
+    group_stores: Dict[str, Dict] = {}
+
     while True:
         
         # 从缓冲池里取出
@@ -34,6 +33,25 @@ async def worker(buffer: asyncio.Queue):
             except ValueError:
                 utils.log_error("main", f"[worker] Event has no message!")
                 continue
+
+            # 判断是否为群聊
+            session: str = item.get_session_id()
+            if not session.startswith("group_"):
+                user_id: str = session    # "{user_id}"
+                continue
+
+            # 获取群号、事件、消息等
+            group_id: str = session.split("_", 2)[1]    # ["group", "{group_id}", "{user_id}"]
+            if group_id not in group_stores:
+                group_stores[group_id] = {
+                    "events": [],
+                    "msgs": [],
+                    "repeat": Message(),
+                }
+            store = group_stores[group_id]
+            events: list = store["events"]
+            msgs: list = store["msgs"]
+            repeat: Message = store["repeat"]
 
             # 处理新消息
             print(msg)
@@ -52,8 +70,7 @@ async def worker(buffer: asyncio.Queue):
                     if message == msg:
                         if event.get_user_id() == item.get_user_id():
                             utils.log_info("main", f"[worker] Just somebody is stressing.")
-                            repeat_tendency = 0.0
-                            break
+                            continue
                         if last_match is None:
                             gap = len(msgs) - i     # 当前位置与最近的历史匹配
                         else:
@@ -63,8 +80,8 @@ async def worker(buffer: asyncio.Queue):
 
             # 进行复读
             print(f"复读倾向为: {repeat_tendency}")
-            if random.random() < repeat_tendency/2-0.2:
-                repeat = msg
+            if random.random() < repeat_tendency/2:
+                store["repeat"] = msg
                 segs = random.choices(
                     [
                         [seg.to_dict() for seg in msg], 
@@ -86,12 +103,7 @@ async def worker(buffer: asyncio.Queue):
                     weights=[25*repeat_tendency, 5*repeat_tendency, 100-30*repeat_tendency]
                 )[0]
                 content = {"message": segs}
-
-                session: str = item.get_session_id()
-                if session.startswith("group_"):
-                    content["group_id"] = session.split("_", 2)[1]    # ["group", "{group_id}", "{user_id}"]
-                else:
-                    content["user_id"] = session    # user_id
+                content["group_id"] = group_id
 
                 utils.append(f"./logs/responses/{today}.log", [content])
                 print(content)
@@ -107,12 +119,14 @@ async def worker(buffer: asyncio.Queue):
         elif item.is_notice():
             if isinstance(item, FriendRecallNoticeEvent):
                 message_id: int = item.message_id
+                # TODO: 私聊撤回处理逻辑
             elif isinstance(item, GroupRecallNoticeEvent):
                 message_id: int = item.message_id
+                # TODO: 群聊撤回处理逻辑
             else:
                 pass
         else:
-            continue
+            pass
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -122,7 +136,7 @@ async def lifespan(app: FastAPI):
     utils.log_info("main", f"[lifespan] 缓冲池消费者已启动。")
 
     process = subprocess.Popen(
-        [],
+        [path],
         creationflags=subprocess.CREATE_NEW_CONSOLE  # 新建独立窗口
     )
     utils.log_info("main", f"[lifespan] QQ已启动。")
@@ -176,7 +190,7 @@ def send(msgs: list, typing: Optional[float] = None):
                 timeout=5,
             )
 
-def lenth_msg(msg: dict) -> int:
+def lenth_msg(msg: Dict) -> int:
     lenth = 0
     if not "message" in msg:
         return -1
@@ -189,7 +203,7 @@ def lenth_msg(msg: dict) -> int:
         lenth += len(content["data"]["text"])
     return lenth
 
-def str_msg(msg: dict) -> int:
+def str_msg(msg: Dict) -> int:
     str_msg = "消息"
     if not "message" in msg:
         return str_msg
