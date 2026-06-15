@@ -15,6 +15,17 @@ from qq.onebot import V11Message as Message
 from qq.onebot import V11MessageSegment as MessageSegment
 
 today = datetime.now().strftime("%Y-%m-%d")
+config = {
+    "is_test": False,
+    "weight_repeat": 100,
+    "weight_stop": 20,
+    "weight_confuse": -20,
+    "threshold": 2.5,
+    "offset_repeat": 0,
+    "offset_stop": 0,
+    "offset_confuse": 75,
+    "offset_threshold": -0.1,
+}
 path = "d:/在/大量大型文件/Python/LLBot-CLI-win-x64-v7.11.4/llbot.exe"  # LLBot所在路径
 
 async def worker(buffer: asyncio.Queue):
@@ -37,7 +48,7 @@ async def worker(buffer: asyncio.Queue):
             # 判断是否为群聊
             session: str = item.get_session_id()
             if not session.startswith("group_"):
-                user_id: str = session    # "{user_id}"
+                user_id: str = session                  # "{user_id}"
                 continue
 
             # 获取群号、事件、消息等
@@ -68,7 +79,7 @@ async def worker(buffer: asyncio.Queue):
                     event: Event = events[i]
 
                     if message == msg:
-                        if event.get_user_id() == item.get_user_id():
+                        if event.get_user_id() == item.get_user_id() and not config["is_test"]:
                             utils.log_info("main", f"[worker] Just somebody is stressing.")
                             continue
                         if last_match is None:
@@ -80,7 +91,7 @@ async def worker(buffer: asyncio.Queue):
 
             # 进行复读
             print(f"复读倾向为: {repeat_tendency}")
-            if random.random() < repeat_tendency/2:
+            if random.random() < repeat_tendency/config["threshold"]+config["offset_threshold"]:
                 store["repeat"] = msg
                 segs = random.choices(
                     [
@@ -94,13 +105,19 @@ async def worker(buffer: asyncio.Queue):
                         random.choices([
                                 MessageSegment.text("[自动回复] ？").to_dict(), 
                                 MessageSegment.text("[自动回复] ?").to_dict(), 
+                                MessageSegment.text("[自动回复] 干嘛").to_dict(),
                                 MessageSegment.text("[自动回复] 干什么").to_dict(), 
+                                MessageSegment.text("[自动回复] 干神马").to_dict(), 
                                 MessageSegment.text("[自动回复] 啊嘞").to_dict(), 
                                 MessageSegment.text("[自动回复] 啊嘞嘞").to_dict(), 
                                 MessageSegment.text("[自动回复] 笨蛋").to_dict(), 
                         ]), 
                     ], 
-                    weights=[25*repeat_tendency, 5*repeat_tendency, 100-30*repeat_tendency]
+                    weights=[
+                        max(config["weight_repeat"]*repeat_tendency+config["offset_repeat"], 0), 
+                        max(config["weight_stop"]*repeat_tendency+config["offset_stop"], 0), 
+                        max(config["weight_confuse"]*repeat_tendency+config["offset_confuse"], 0)
+                    ]
                 )[0]
                 content = {"message": segs}
                 content["group_id"] = group_id
